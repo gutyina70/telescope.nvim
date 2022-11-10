@@ -55,22 +55,21 @@ lsp.references = function(opts)
         vim.cmd "vnew"
       end
       vim.lsp.util.jump_to_location(ranges_with_locations[1].range, offset_encoding)
-      return
+    else
+      pickers
+        .new(opts, {
+          prompt_title = "LSP References",
+          finder = finders.new_table {
+            results = locations,
+            entry_maker = opts.entry_maker or make_entry.gen_from_quickfix(opts),
+          },
+          previewer = conf.qflist_previewer(opts),
+          sorter = conf.generic_sorter(opts),
+          push_cursor_on_edit = true,
+          push_tagstack_on_edit = true,
+        })
+        :find()
     end
-
-    pickers
-      .new(opts, {
-        prompt_title = "LSP References",
-        finder = finders.new_table {
-          results = locations,
-          entry_maker = opts.entry_maker or make_entry.gen_from_quickfix(opts),
-        },
-        previewer = conf.qflist_previewer(opts),
-        sorter = conf.generic_sorter(opts),
-        push_cursor_on_edit = true,
-        push_tagstack_on_edit = true,
-      })
-      :find()
   end)
 end
 

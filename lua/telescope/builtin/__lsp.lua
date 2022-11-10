@@ -22,19 +22,26 @@ lsp.references = function(opts)
       return
     end
 
-    local locations = {}
+    local offset_encoding = vim.lsp.get_client_by_id(ctx.client_id).offset_encoding
+    local ranges_with_locations = {}
     if result then
-      local results = vim.lsp.util.locations_to_items(result, vim.lsp.get_client_by_id(ctx.client_id).offset_encoding)
+      local locations = vim.lsp.util.locations_to_items(result, offset_encoding)
+      for i = 1, #locations do
+        ranges_with_locations[i] = {
+          range = result[i],
+          location = locations[i],
+        }
+      end
+
       if not include_current_line then
-        locations = vim.tbl_filter(function(v)
+        ranges_with_locations = vim.tbl_filter(function(v)
           -- Remove current line from result
-          return not (v.filename == filepath and v.lnum == lnum)
-        end, vim.F.if_nil(results, {}))
-      else
-        locations = vim.F.if_nil(results, {})
+          return not (v.location.filename == filepath and v.location.lnum == lnum)
+        end, ranges_with_locations)
       end
     end
 
+    local locations = vim.tbl_map(function(v) return v.location end, ranges_with_locations)
     if vim.tbl_isempty(locations) then
       return
     end
@@ -47,9 +54,7 @@ lsp.references = function(opts)
       elseif opts.jump_type == "vsplit" then
         vim.cmd "vnew"
       end
-      -- jump to location
-      vim.api.nvim_win_set_buf(0, opts.bufnr)
-      vim.api.nvim_win_set_cursor(0, { locations[1].lnum, locations[1].col - 1 })
+      vim.lsp.util.jump_to_location(ranges_with_locations[1].range, offset_encoding)
       return
     end
 
